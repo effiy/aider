@@ -1,11 +1,24 @@
+---
+title: Aider Benchmark Harness
+tags: [benchmark, aider, llm, evaluation, exercism, docker]
+category: benchmark
+created: 2024-07-01
+updated: 2026-10-20
+source: external
+type: index
+status: stable
+lifecycle: active
+---
 
-# Aider benchmark harness
+# Aider Benchmark Harness
+
+---
+
+## 💡 概述
 
 Aider uses benchmarks to quantitatively measure how well it works
 with various LLMs.
 This directory holds the harness and tools needed to run the benchmarking suite.
-
-## Background
 
 The benchmark is based on the [Exercism](https://github.com/exercism/python) coding exercises.
 This
@@ -19,6 +32,70 @@ edits to the local source files.
 
 See [this writeup for a longer discussion about the benchmark](https://aider.chat/2024/12/21/polyglot.html).
 
+---
+
+## ⚡ 功能
+
+- End-to-end evaluation of LLM coding ability with natural language requests
+- Measures ability to edit existing code and format code edits correctly
+- Runs exercises in random order with configurable parallelism via `--threads`
+- Generates YAML summary reports with pass rates, error counts, costs, and timing
+- Supports filtering exercises by keywords (`--keywords`) and limiting test count (`--num-tests`)
+- Configurable model settings via `--read-model-settings=<filename.yml>`
+
+---
+
+## 📊 指标
+
+Key statistics reported in the benchmark YAML output:
+
+| Metric | Description |
+|--------|-------------|
+| `pass_rate_1`, `pass_rate_2`, ... | Percent of tasks with all tests passing (multiple entries depending on `--tries`) |
+| `percent_cases_well_formed` | Percentage of well-formed responses |
+| `error_outputs` | Count of error outputs |
+| `num_malformed_responses` | Count of malformed responses |
+| `num_with_malformed_responses` | Count of cases with malformed responses |
+| `user_asks` | Count of user asks |
+| `lazy_comments` | Count of lazy comments |
+| `syntax_errors` | Count of syntax errors |
+| `indentation_errors` | Count of indentation errors |
+| `exhausted_context_windows` | Count of exhausted context windows |
+| `test_timeouts` | Count of test timeouts |
+| `seconds_per_case` | Average seconds per test case |
+| `total_cost` | Total cost of the benchmark run |
+
+Example YAML record from a benchmark report:
+
+```yaml
+- dirname: 2024-07-04-14-32-08--claude-3.5-sonnet-diff-continue
+  test_cases: 225
+  model: claude-3.5-sonnet
+  edit_format: diff
+  commit_hash: 35f21b5
+  pass_rate_1: 57.1
+  pass_rate_2: 77.4
+  percent_cases_well_formed: 99.2
+  error_outputs: 23
+  num_malformed_responses: 4
+  num_with_malformed_responses: 1
+  user_asks: 2
+  lazy_comments: 0
+  syntax_errors: 1
+  indentation_errors: 0
+  exhausted_context_windows: 0
+  test_timeouts: 1
+  command: aider --sonnet
+  date: 2024-07-04
+  versions: 0.42.1-dev
+  seconds_per_case: 17.6
+  total_cost: 3.6346
+```
+
+---
+
+## 🏛️ 设计
+
 The benchmark is intended to be run *inside a docker container*.
 This is because the benchmarking harness will be
 taking code written by an LLM
@@ -26,14 +103,37 @@ and executing it without any human review or supervision!
 The LLM could generate dangerous python that harms your system, like this: `import os; os.system("sudo rm -rf /")`.
 Running inside a docker container helps limit the damage that could be done.
 
-## Usage
+The yaml report also includes all the settings which were in effect for the benchmark run.
+It also reports the git hash of the repo at the time that the benchmark was
+run, with `(dirty)` if there were uncommitted changes.
+It's good practice to commit the repo before starting a benchmark run.
+This way the `model`, `edit_format` and `commit_hash`
+should be enough to reliably reproduce any benchmark run.
+
+---
+
+## 📁 目录
+
+「待补充」
+
+---
+
+## 🔗 资源
+
+- [Exercism Python exercises](https://github.com/exercism/python) — source of the coding exercises
+- [Polyglot benchmark writeup](https://aider.chat/2024/12/21/polyglot.html) — longer discussion about the benchmark
+- [Polyglot benchmark repo](https://github.com/Aider-AI/polyglot-benchmark) — exercise repository
+- [Aider leaderboard data files](https://github.com/Aider-AI/aider/blob/main/aider/website/_data/) — examples of benchmark report yaml
+- [Model settings documentation](https://aider.chat/docs/config/adv-model-settings.html#model-settings)
+
+---
+
+## 🚀 快速开始
 
 There are 3 main tasks involved in benchmarking aider:
 
 1. Install and setup for benchmarking.
-
 2. Run the benchmark to measure performance across all the exercises.
-
 3. Generate a summary report of how many of the exercises succeeded or failed.
 
 ### Setup for benchmarking
@@ -95,52 +195,12 @@ collecting stats not executing unsafe python.
 ./benchmark/benchmark.py --stats tmp.benchmarks/YYYY-MM-DD-HH-MM-SS--a-helpful-name-for-this-run
 ```
 
-The benchmark report is a yaml record with statistics about the run:
+---
 
-```yaml
-- dirname: 2024-07-04-14-32-08--claude-3.5-sonnet-diff-continue
-  test_cases: 225
-  model: claude-3.5-sonnet
-  edit_format: diff
-  commit_hash: 35f21b5
-  pass_rate_1: 57.1
-  pass_rate_2: 77.4
-  percent_cases_well_formed: 99.2
-  error_outputs: 23
-  num_malformed_responses: 4
-  num_with_malformed_responses: 1
-  user_asks: 2
-  lazy_comments: 0
-  syntax_errors: 1
-  indentation_errors: 0
-  exhausted_context_windows: 0
-  test_timeouts: 1
-  command: aider --sonnet
-  date: 2024-07-04
-  versions: 0.42.1-dev
-  seconds_per_case: 17.6
-  total_cost: 3.6346
-```
+## ⚙️ 技术栈
 
-The key statistics are the `pass_rate_#` entries, which report the
-percent of the tasks which had all tests passing.
-There will be multiple of these pass rate stats,
-depending on the value of the `--tries` parameter.
-
-The yaml also includes all the settings which were in effect for the benchmark run.
-It also reports the git hash of the repo at the time that the benchmark was
-run, with `(dirty)` if there were uncommitted changes.
-It's good practice to commit the repo before starting a benchmark run.
-This way the `model`, `edit_format` and `commit_hash`
-should be enough to reliably reproduce any benchmark run.
-
-You can see examples of the benchmark report yaml in the
-[aider leaderboard data files](https://github.com/Aider-AI/aider/blob/main/aider/website/_data/).
-
-
-## Limitations, notes
-
-- Contributions of benchmark results are welcome! Submit results by opening a PR with edits to the
-[aider leaderboard data files](https://github.com/Aider-AI/aider/blob/main/aider/website/_data/).
-- These scripts are not intended for use by typical aider end users.
-- Some of these tools are written as `bash` scripts, so it will be hard to use them on Windows.
+- Python (benchmark harness scripts)
+- Docker (sandboxed execution environment)
+- Bash (setup and container scripts)
+- YAML (benchmark report format)
+- Exercism Python exercises (test corpus)
